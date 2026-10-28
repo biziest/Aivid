@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aivid — Free Short Video Maker</title>
-<meta name="description" content="Turn text, audio, videos and chat stories into captioned short-form videos. Free, runs entirely in your browser.">
+<title>Aivid — Free AI Short Video Maker</title>
+<meta name="description" content="Turn text, audio, videos and chat stories into captioned short-form videos with AI voiceover. Free, runs entirely in your browser.">
 <style>
   :root {
     --bg: #0d0f14; --panel: #161a22; --panel2: #1e2330; --line: #2a3040;
@@ -12,7 +12,7 @@
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   .logo { font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
   .logo span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   header small { color: var(--muted); }
@@ -20,11 +20,16 @@
   nav button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; cursor: pointer; font: inherit; }
   nav button.active { background: var(--accent); border-color: var(--accent); }
   main { display: grid; grid-template-columns: minmax(300px, 440px) 1fr; gap: 20px; padding: 20px; max-width: 1300px; margin: 0 auto; }
-  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; padding: 16px; }
+    .stage { order: -1; position: sticky; top: 0; z-index: 2; background: var(--bg); padding-bottom: 8px; }
+    .canvas-wrap { height: 46vh !important; }
+  }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
   .tool { display: none; }
   .tool.active { display: block; }
   h2 { margin: 0 0 4px; font-size: 18px; }
+  h3 { margin: 18px 0 0; font-size: 14px; color: var(--accent2); text-transform: uppercase; letter-spacing: .5px; }
   .hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
   label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
   input[type=text], input[type=number], textarea, select {
@@ -42,30 +47,37 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .chip { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; text-align: left; color: var(--text); font-family: inherit; }
   .chip:hover { border-color: var(--accent2); }
-  .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .canvas-wrap { background: #000; border-radius: 14px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; width: 100%; height: min(72vh, 760px); overflow: hidden; }
   canvas { max-width: 100%; max-height: 100%; display: block; }
   .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
   .status { color: var(--muted); font-size: 13px; min-height: 20px; text-align: center; }
   .download { color: var(--accent2); font-weight: 600; }
-  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .swatch { width: 34px; height: 34px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; }
   .swatch.active { border-color: #fff; }
+  .bgthumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+  .bgthumb { border: 2px solid var(--line); border-radius: 8px; background: var(--panel2); color: var(--text); padding: 0; cursor: pointer; font: 12px/1.2 inherit; overflow: hidden; text-align: center; }
+  .bgthumb canvas { width: 100%; height: 64px; display: block; }
+  .bgthumb div { padding: 4px 2px 5px; }
+  .bgthumb.active { border-color: var(--accent); }
+  .sub { margin-top: 8px; }
   footer { color: var(--muted); font-size: 12px; text-align: center; padding: 20px; }
   .rec { color: #ff5c7a; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
 <header>
   <div class="logo"><span>Aivid</span></div>
-  <small>Free short-form video maker · everything runs in your browser</small>
+  <small>Free AI short-video maker · everything runs in your browser</small>
 </header>
 
 <nav id="tabs">
   <button data-tool="text" class="active">Text → Video</button>
+  <button data-tool="chat">Chat Story → Video</button>
   <button data-tool="audio">Audio → Video</button>
   <button data-tool="video">Auto-Caption Video</button>
-  <button data-tool="chat">Chat Story → Video</button>
 </nav>
 
 <main>
@@ -73,8 +85,9 @@
     <!-- TEXT TO VIDEO -->
     <div class="tool active" id="tool-text">
       <h2>Text → Video</h2>
-      <p class="hint">Write a script, pick a look, and get a captioned video with animated word-by-word subtitles.</p>
+      <p class="hint">Write a script, pick an AI voice and a background, and get a narrated video with animated word-by-word captions.</p>
 
+      <h3>1 · Script</h3>
       <label>Topic (for hook ideas)</label>
       <div class="row" style="grid-template-columns: 1fr auto;">
         <input type="text" id="t-topic" placeholder="e.g. saving money, sleep, history facts">
@@ -82,11 +95,44 @@
       </div>
       <div class="chips" id="t-hooks"></div>
 
-      <label>Script (or paste SRT subtitles for exact timing)</label>
+      <label>Script</label>
       <textarea id="t-script" rows="7">Most people check their phone within ten minutes of waking up. That one habit can quietly drain your focus for the whole day. Try this instead. Leave your phone in another room overnight. Drink a glass of water, and write down the one thing you must finish today. Do that for a week, and watch what happens.</textarea>
 
       <label>Title overlay (optional)</label>
       <input type="text" id="t-title" placeholder="e.g. Morning habit that changed my life">
+
+      <h3>2 · Voice</h3>
+      <label>Voiceover</label>
+      <select id="t-voicesrc">
+        <option value="ai">AI voice (free, runs on your device)</option>
+        <option value="own">My own recording / audio file</option>
+        <option value="none">No voice (captions only)</option>
+      </select>
+      <div id="t-ai-box">
+        <div class="row" style="grid-template-columns: 1fr auto;">
+          <div><label>Voice</label><select id="t-voice-pick" class="voice-select"></select></div>
+          <div><label>&nbsp;</label><button class="btn" id="t-voice-test">▶ Hear it</button></div>
+        </div>
+        <label>Speaking speed <span id="t-speed-v">1.1×</span></label>
+        <input type="range" id="t-speed" min="70" max="150" value="110">
+        <p class="hint" style="margin:6px 0 0">The first time, your browser downloads the voice model (~90 MB). After that it's cached and works offline.</p>
+      </div>
+      <div id="t-own-box" class="hidden">
+        <label>Upload audio or record with your mic</label>
+        <div class="row">
+          <input type="file" id="t-voice" accept="audio/*">
+          <button class="btn" id="t-rec">🎙 Record voice</button>
+        </div>
+        <div class="hint" id="t-voice-info" style="margin:4px 0 0"></div>
+      </div>
+      <div id="t-none-box" class="hidden">
+        <label>Caption speed: <span id="t-wpm-v">170</span> words/min</label>
+        <input type="range" id="t-wpm" min="90" max="300" value="170">
+      </div>
+
+      <h3>3 · Look</h3>
+      <label>Background</label>
+      <div id="t-bg"></div>
 
       <div class="row">
         <div>
@@ -108,31 +154,79 @@
         </div>
       </div>
 
-      <label>Background</label>
-      <div class="swatches" id="t-swatches"></div>
-      <label>…or your own images (one per sentence, cycled)</label>
-      <input type="file" id="t-images" accept="image/*" multiple>
-
-      <label>Voiceover (optional — sets video length)</label>
-      <div class="row">
-        <input type="file" id="t-voice" accept="audio/*">
-        <button class="btn" id="t-rec">🎙 Record voice</button>
-      </div>
-      <div class="hint" id="t-voice-info" style="margin:4px 0 0"></div>
-
       <label>Background music (optional)</label>
       <input type="file" id="t-music" accept="audio/*">
-      <label>Music volume <span id="t-musicvol-v">20%</span></label>
-      <input type="range" id="t-musicvol" min="0" max="100" value="20">
+      <label>Music volume <span id="t-musicvol-v">15%</span></label>
+      <input type="range" id="t-musicvol" min="0" max="100" value="15">
+    </div>
 
-      <label>Speed without voiceover: <span id="t-wpm-v">170</span> words/min</label>
-      <input type="range" id="t-wpm" min="90" max="300" value="170">
+    <!-- CHAT STORY -->
+    <div class="tool" id="tool-chat">
+      <h2>Chat Story → Video</h2>
+      <p class="hint">An animated text-message story, read aloud by AI voices, over a moving background. Start a line with <b>Me:</b> for your messages. Every other line is from the contact.</p>
+      <label>Contact name</label>
+      <input type="text" id="c-name" value="Alex">
+      <label>Conversation</label>
+      <textarea id="c-script" rows="10">Alex: are you awake??
+Me: barely. what happened
+Alex: I think someone is in my kitchen
+Me: WHAT. call the police
+Alex: wait
+Alex: it's my roommate
+Alex: she's making pancakes at 3am
+Me: save me some
+Alex: she says no 💀</textarea>
+      <label>Read messages aloud</label>
+      <select id="c-voiced">
+        <option value="ai">Yes, with AI voices</option>
+        <option value="off">No, just message sounds</option>
+      </select>
+      <div class="row" id="c-voice-row">
+        <div><label>Contact's voice</label><select id="c-voice-them" class="voice-select"></select></div>
+        <div><label>My voice</label><select id="c-voice-me" class="voice-select"></select></div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Layout</label>
+          <select id="c-layout">
+            <option value="split">Chat top, background bottom</option>
+            <option value="over">Chat over background</option>
+            <option value="plain">Plain chat</option>
+          </select>
+        </div>
+        <div>
+          <label>Theme</label>
+          <select id="c-theme">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
+      </div>
+      <label>Background</label>
+      <div id="c-bg"></div>
+      <div class="row">
+        <div>
+          <label>Format</label>
+          <select id="c-aspect">
+            <option value="9:16">9:16 Vertical</option>
+            <option value="1:1">1:1 Square</option>
+            <option value="16:9">16:9 Wide</option>
+          </select>
+        </div>
+        <div>
+          <label>Pace <span id="c-pace-v">1.0×</span></label>
+          <input type="range" id="c-pace" min="50" max="200" value="100">
+        </div>
+      </div>
+      <label><input type="checkbox" id="c-sound" checked> Message pop sounds</label>
+      <label>Background music (optional)</label>
+      <input type="file" id="c-music" accept="audio/*">
     </div>
 
     <!-- AUDIO TO VIDEO -->
     <div class="tool" id="tool-audio">
       <h2>Audio → Video</h2>
-      <p class="hint">Turn a podcast clip, song or voice note into a video with an audio visualizer and optional captions.</p>
+      <p class="hint">Turn a podcast clip, song or voice note into a video with a moving background, an audio visualizer and optional captions.</p>
       <label>Audio file (MP3, WAV, M4A…)</label>
       <input type="file" id="a-file" accept="audio/*">
       <div class="hint" id="a-info" style="margin:4px 0 0"></div>
@@ -142,8 +236,8 @@
       <input type="text" id="a-sub" value="The Aivid Podcast">
       <label>Cover image (optional)</label>
       <input type="file" id="a-cover" accept="image/*">
-      <label>Transcript (optional — plain text is spread evenly, SRT is exact)</label>
-      <textarea id="a-transcript" rows="5" placeholder="Paste transcript or SRT here"></textarea>
+      <label>Transcript (optional: plain text is spread evenly, SRT keeps exact timing)</label>
+      <textarea id="a-transcript" rows="4" placeholder="Paste transcript or SRT here"></textarea>
       <div class="row">
         <div>
           <label>Format</label>
@@ -156,26 +250,26 @@
         <div>
           <label>Visualizer</label>
           <select id="a-viz">
-            <option value="bars">Bars</option>
             <option value="circle">Circle</option>
+            <option value="bars">Bars</option>
             <option value="wave">Wave</option>
           </select>
         </div>
       </div>
       <label>Background</label>
-      <div class="swatches" id="a-swatches"></div>
+      <div id="a-bg"></div>
     </div>
 
     <!-- VIDEO CAPTIONER -->
     <div class="tool" id="tool-video">
       <h2>Auto-Caption Video</h2>
-      <p class="hint">Upgrade an existing clip: add animated captions, a headline, a progress bar, and reframe to vertical.</p>
+      <p class="hint">Upgrade an existing clip: add animated captions, a headline and a progress bar, and reframe it to vertical.</p>
       <label>Video file (MP4, MOV, WebM)</label>
       <input type="file" id="v-file" accept="video/*">
       <div class="hint" id="v-info" style="margin:4px 0 0"></div>
       <label>Headline (optional)</label>
       <input type="text" id="v-title" placeholder="e.g. Wait for the end 😳">
-      <label>Captions (plain text is spread evenly, SRT is exact)</label>
+      <label>Captions (plain text is spread evenly, SRT keeps exact timing)</label>
       <textarea id="v-transcript" rows="5" placeholder="Paste what is said in the video, or an SRT file's contents"></textarea>
       <label>Or load an .srt file</label>
       <input type="file" id="v-srt" accept=".srt,.vtt,text/plain">
@@ -201,46 +295,6 @@
       </div>
       <label><input type="checkbox" id="v-progress" checked> Show progress bar</label>
     </div>
-
-    <!-- CHAT STORY -->
-    <div class="tool" id="tool-chat">
-      <h2>Chat Story → Video</h2>
-      <p class="hint">Animated text-message story with typing indicators and message sounds. Start a line with <b>Me:</b> for your messages; any other line is from the contact.</p>
-      <label>Contact name</label>
-      <input type="text" id="c-name" value="Alex">
-      <label>Conversation</label>
-      <textarea id="c-script" rows="10">Alex: are you awake??
-Me: barely. what happened
-Alex: I think someone is in my kitchen
-Me: WHAT. call the police
-Alex: wait
-Alex: it's my roommate
-Alex: she's making pancakes at 3am
-Me: ...save me some
-Alex: she says no 💀</textarea>
-      <div class="row">
-        <div>
-          <label>Theme</label>
-          <select id="c-theme">
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
-        </div>
-        <div>
-          <label>Format</label>
-          <select id="c-aspect">
-            <option value="9:16">9:16 Vertical</option>
-            <option value="1:1">1:1 Square</option>
-            <option value="16:9">16:9 Wide</option>
-          </select>
-        </div>
-      </div>
-      <label>Pace <span id="c-pace-v">1.0×</span></label>
-      <input type="range" id="c-pace" min="50" max="200" value="100">
-      <label><input type="checkbox" id="c-sound" checked> Message sounds</label>
-      <label>Background music (optional)</label>
-      <input type="file" id="c-music" accept="audio/*">
-    </div>
   </section>
 
   <section class="stage">
@@ -254,7 +308,7 @@ Alex: she says no 💀</textarea>
   </section>
 </main>
 
-<footer>Videos are rendered in real time in your browser. Keep this tab visible while exporting. Nothing is uploaded anywhere.</footer>
+<footer>Videos are rendered in real time in your browser. Keep this tab open and visible while exporting. Your files never leave your device. The only exception is "AI images", which sends each sentence of your script to a free image service.</footer>
 
 <script>
 "use strict";
@@ -275,6 +329,12 @@ function getAC() {
   return audioCtx;
 }
 function status(msg, html) { if (html) $("status").innerHTML = msg; else $("status").textContent = msg; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const smooth = (u) => u * u * (3 - 2 * u);
+function rng(seed) { // mulberry32
+  return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
 
 function loadImage(file) {
   return new Promise((res, rej) => {
@@ -290,7 +350,7 @@ async function loadAudio(fileOrBlob) {
 }
 
 function roundRect(c, x, y, w, h, r) {
-  r = Math.min(r, w / 2, h / 2);
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
   c.beginPath();
   c.moveTo(x + r, y);
   c.arcTo(x + w, y, x + w, y + h, r);
@@ -378,11 +438,14 @@ function parseSRT(text) {
   return cues.length ? cues : null;
 }
 
+function splitSentences(text) {
+  return text.replace(/\s+/g, " ").trim().split(/(?<=[.!?…])\s+/).filter(Boolean);
+}
+
 // Spread words over [start,end] weighted by length; returns [{w,start,end,s}]
 function spreadWords(text, start, end, sentenceBase = 0) {
-  const sentences = text.trim().split(/(?<=[.!?…])\s+/).filter(Boolean);
   const items = [];
-  sentences.forEach((s, si) => s.split(/\s+/).filter(Boolean).forEach((w) => items.push({ w, s: sentenceBase + si, weight: w.length + 3 + (/[.!?,;:]$/.test(w) ? 4 : 0) })));
+  splitSentences(text).forEach((s, si) => s.split(/\s+/).filter(Boolean).forEach((w) => items.push({ w, s: sentenceBase + si, weight: w.length + 3 + (/[.!?,;:]$/.test(w) ? 4 : 0) })));
   const total = items.reduce((a, b) => a + b.weight, 0) || 1;
   let t = start;
   for (const it of items) {
@@ -392,19 +455,28 @@ function spreadWords(text, start, end, sentenceBase = 0) {
   return items;
 }
 
-// Build timed words from either SRT or plain text over [0,duration]
-function timedWords(text, duration) {
-  const cues = parseSRT(text);
-  let words = [];
-  if (cues) cues.forEach((c, i) => { words = words.concat(spreadWords(c.text, c.start, c.end, i * 1000)); });
-  else words = spreadWords(text, 0, duration);
-  // group into on-screen chunks of up to 3 words that never cross a sentence
+// group into on-screen chunks of up to 3 words that never cross a sentence
+function chunkWords(words) {
   let chunk = -1, n = 0, prevS = null;
   for (const w of words) {
     if (w.s !== prevS || n === 3) { chunk++; n = 0; prevS = w.s; }
     w.chunk = chunk; n++;
   }
   return words;
+}
+
+// segments: [{text,start,end}] -> timed words
+function wordsFromSegments(segs) {
+  let words = [];
+  segs.forEach((sg, i) => { words = words.concat(spreadWords(sg.text, sg.start, sg.end, i * 1000)); });
+  return chunkWords(words);
+}
+
+// Build timed words from either SRT or plain text over [0,duration]
+function timedWords(text, duration) {
+  const cues = parseSRT(text);
+  if (cues) return wordsFromSegments(cues);
+  return chunkWords(spreadWords(text, 0, duration));
 }
 
 function wordCount(text) {
@@ -418,7 +490,7 @@ function drawCaptions(c, words, t, W, H, style, yFrac = 0.68) {
   let i = -1;
   for (let k = 0; k < words.length; k++) if (words[k].start <= t) i = k; else break;
   if (i < 0) return;
-  if (t > words[i].end + 0.6) return; // gap in SRT
+  if (t > words[i].end + 0.6) return; // pause between SRT cues / sentences
   const chunk = words.filter((w) => w.chunk === words[i].chunk);
   const size = Math.round(Math.min(W, H) * (style === "clean" ? 0.06 : 0.085));
   c.font = `900 ${size}px ${FONT}`;
@@ -427,20 +499,21 @@ function drawCaptions(c, words, t, W, H, style, yFrac = 0.68) {
   const txt = (w) => (style === "clean" ? w.w : w.w.toUpperCase());
   // extra room so the scaled/boxed active word never touches its neighbours
   const space = c.measureText(" ").width + size * 0.22;
-  // layout into lines
   const maxW = W * 0.86;
   const lines = [[]];
   let lw = 0;
   for (const w of chunk) {
     const ww = c.measureText(txt(w)).width;
-    if (lw + ww > maxW && lines[lines.length - 1].length) { lines.push([]); lw = 0; }
-    lines[lines.length - 1].push({ w, ww });
-    lw += ww + space;
+    // reserve the enlarged width for the popped word so it can't overlap its neighbours
+    const slot = style === "pop" && w === words[i] ? ww * 1.18 : ww;
+    if (lw + slot > maxW && lines[lines.length - 1].length) { lines.push([]); lw = 0; }
+    lines[lines.length - 1].push({ w, ww, slot });
+    lw += slot + space;
   }
   const lh = size * 1.25;
   const y0 = H * yFrac - ((lines.length - 1) * lh) / 2;
   lines.forEach((line, li) => {
-    const total = line.reduce((a, b) => a + b.ww, 0) + space * (line.length - 1);
+    const total = line.reduce((a, b) => a + b.slot, 0) + space * (line.length - 1);
     let x = (W - total) / 2;
     const y = y0 + li * lh;
     if (style === "clean") {
@@ -448,12 +521,12 @@ function drawCaptions(c, words, t, W, H, style, yFrac = 0.68) {
       roundRect(c, x - size * 0.35, y - lh / 2, total + size * 0.7, lh, size * 0.25);
       c.fill();
     }
-    for (const { w, ww } of line) {
+    for (const { w, ww, slot } of line) {
       const idx = words.indexOf(w);
       const active = idx === i;
       const spoken = idx <= i;
       c.save();
-      c.translate(x + ww / 2, y);
+      c.translate(x + slot / 2, y);
       if (style === "pop" && active) {
         const p = Math.min(1, (t - w.start) / 0.12);
         const sc = 1 + 0.18 * Math.sin(p * Math.PI / 2);
@@ -476,7 +549,7 @@ function drawCaptions(c, words, t, W, H, style, yFrac = 0.68) {
       c.fillStyle = fill;
       c.fillText(txt(w), -ww / 2, 0);
       c.restore();
-      x += ww + space;
+      x += slot + space;
     }
   });
 }
@@ -500,32 +573,515 @@ function playBuffer(ac, buffer, dests, { loop = false, gain = 1, when = 0 } = {}
   return src;
 }
 
-function swatchPicker(container, onPick) {
-  PALETTES.forEach((p, i) => {
-    const s = document.createElement("div");
-    s.className = "swatch" + (i === 0 ? " active" : "");
-    s.style.background = `linear-gradient(135deg, ${p[0]}, ${p[1]})`;
-    s.onclick = () => {
-      container.querySelectorAll(".swatch").forEach((x) => x.classList.remove("active"));
-      s.classList.add("active");
-      onPick(p);
+// ---------- AI voice (Kokoro TTS, runs locally in a web worker) ----------
+const VOICES = [
+  ["af_heart", "Heart · US female (best)"], ["af_bella", "Bella · US female (energetic)"], ["af_nicole", "Nicole · US female (soft)"],
+  ["af_sarah", "Sarah · US female"], ["af_kore", "Kore · US female"], ["af_aoede", "Aoede · US female"], ["af_sky", "Sky · US female"],
+  ["am_michael", "Michael · US male"], ["am_fenrir", "Fenrir · US male (deep)"], ["am_puck", "Puck · US male (upbeat)"],
+  ["am_echo", "Echo · US male"], ["am_eric", "Eric · US male"], ["am_liam", "Liam · US male"], ["am_onyx", "Onyx · US male"],
+  ["bf_emma", "Emma · UK female"], ["bf_isabella", "Isabella · UK female"], ["bf_alice", "Alice · UK female"],
+  ["bm_george", "George · UK male"], ["bm_fable", "Fable · UK male"], ["bm_lewis", "Lewis · UK male"], ["bm_daniel", "Daniel · UK male"],
+];
+const WORKER_SRC = `
+let tts = null;
+self.onmessage = async (e) => {
+  const { id, text, voice, speed } = e.data;
+  try {
+    if (!tts) {
+      const { KokoroTTS } = await import("https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js");
+      tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+        dtype: "q8", device: "wasm",
+        progress_callback: (p) => self.postMessage({ progress: p }),
+      });
+    }
+    const out = await tts.generate(text, { voice, speed });
+    const pcm = out.audio;
+    self.postMessage({ id, pcm, sr: out.sampling_rate }, [pcm.buffer]);
+  } catch (err) {
+    self.postMessage({ id, error: String(err && err.message || err) });
+  }
+};`;
+const TTS = {
+  worker: null, seq: 0, pending: new Map(), cache: new Map(), loaded: false, files: {},
+  cleanText(text) { return text.replace(/\p{Extended_Pictographic}/gu, "").replace(/\s+/g, " ").trim(); },
+  key(text, voice, speed) { return voice + "|" + speed + "|" + this.cleanText(text); },
+  cached(text, voice, speed) { return this.cache.get(this.key(text, voice, speed)) || null; },
+  ensureWorker() {
+    if (this.worker) return;
+    this.worker = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: "text/javascript" })), { type: "module" });
+    this.worker.onmessage = (e) => {
+      const d = e.data;
+      if (d.progress) {
+        const p = d.progress;
+        if (p.status === "progress" && p.total) {
+          this.files[p.file] = [p.loaded, p.total];
+          const [l, tot] = Object.values(this.files).reduce((a, b) => [a[0] + b[0], a[1] + b[1]], [0, 0]);
+          if (!this.loaded) status(`Downloading AI voice model (one time only)… ${Math.round((l / tot) * 100)}%`);
+        }
+        return;
+      }
+      const job = this.pending.get(d.id);
+      if (!job) return;
+      this.pending.delete(d.id);
+      if (d.error) job.reject(new Error(d.error));
+      else { this.loaded = true; job.resolve(d); }
     };
-    container.appendChild(s);
-  });
+    this.worker.onerror = (e) => {
+      for (const j of this.pending.values()) j.reject(new Error(e.message || "AI voice failed to load"));
+      this.pending.clear();
+      this.worker = null;
+    };
+  },
+  // Returns an AudioBuffer (cached) for the given line
+  async say(text, voice, speed = 1) {
+    const k = this.key(text, voice, speed);
+    if (this.cache.has(k)) return this.cache.get(k);
+    const clean = this.cleanText(text);
+    if (!clean) return null;
+    this.ensureWorker();
+    const id = ++this.seq;
+    const { pcm, sr } = await new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.worker.postMessage({ id, text: clean, voice, speed });
+    });
+    const buf = getAC().createBuffer(1, pcm.length, sr);
+    buf.copyToChannel(pcm, 0);
+    this.cache.set(k, buf);
+    return buf;
+  },
+};
+document.querySelectorAll(".voice-select").forEach((sel) => {
+  VOICES.forEach(([id, name]) => sel.add(new Option(name, id)));
+});
+$("c-voice-me").value = "am_michael";
+$("c-voice-them").value = "af_bella";
+
+// Join several AudioBuffers with gaps; returns {buffer, segs:[{start,end}]}
+function concatBuffers(bufs, gap = 0.18, tail = 0.4) {
+  const sr = (bufs.find(Boolean) || { sampleRate: 24000 }).sampleRate;
+  const segs = [];
+  let pos = 0;
+  for (const b of bufs) {
+    const len = b ? b.length : 0;
+    segs.push({ start: pos / sr, end: (pos + len) / sr });
+    pos += len + Math.round(gap * sr);
+  }
+  const total = pos + Math.round(tail * sr);
+  const out = getAC().createBuffer(1, Math.max(1, total), sr);
+  const data = out.getChannelData(0);
+  let at = 0;
+  for (const b of bufs) {
+    if (b) data.set(b.getChannelData(0), at);
+    at += (b ? b.length : 0) + Math.round(gap * sr);
+  }
+  return { buffer: out, segs };
+}
+
+// ---------- animated backgrounds ----------
+const BG_ANIM = {
+  parkour: { name: "Parkour run", draw: drawParkour },
+  bounce: { name: "Satisfying bounce", draw: drawBounce },
+  highway: { name: "Neon highway", draw: drawHighway },
+  tunnel: { name: "Hyper tunnel", draw: drawTunnel },
+  lava: { name: "Lava lamp", draw: drawLava },
+  warp: { name: "Warp speed", draw: drawWarp },
+};
+
+// -- blocky parkour run (pseudo-3D, first person) --
+const BLOCK_THEMES = [
+  { top: "#34d399", side: "#0f766e" }, { top: "#a9b0b8", side: "#7d848c" }, { top: "#f2c94c", side: "#c99a2e" },
+  { top: "#8fd3f4", side: "#5aa6cf" }, { top: "#b07cff", side: "#7c4fd0" }, { top: "#ff7a59", side: "#c4513a" },
+];
+function blockAt(i) {
+  const r = rng(i * 7919 + 13);
+  return {
+    x: Math.sin(i * 0.7) * 1.3 + Math.sin(i * 1.9) * 0.5,
+    y: Math.round(Math.sin(i * 0.45) * 1.5 + Math.sin(i * 1.3) * 0.7) * 0.5,
+    z: i * 3.2,
+    w: 1.1 + r() * 0.5,
+    theme: BLOCK_THEMES[Math.floor(r() * BLOCK_THEMES.length)],
+  };
+}
+function shade(hex, f, fog, fogHex) {
+  const p = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  const a = p(hex), b = p(fogHex);
+  return `rgb(${a.map((v, k) => Math.round(lerp(v * f, b[k], fog))).join(",")})`;
+}
+function drawParkour(c, W, H, t) {
+  const speed = 2.1; // blocks per second
+  const f = t * speed + 1, i = Math.floor(f), u = f - i;
+  const A = blockAt(i), B = blockAt(i + 1);
+  const camX = lerp(A.x, B.x, smooth(u));
+  const camY = lerp(A.y, B.y, u) + 4 * u * (1 - u) * 1.1 + 1.55;
+  const camZ = lerp(A.z, B.z, u) - 0.6;
+  const F = Math.max(W, H) * 0.62, hy = H * 0.46;
+  const roll = Math.sin(t * 2.1) * 0.012;
+  // sky + void
+  const sky = c.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#3a7bd5"); sky.addColorStop(0.45, "#9fd3ff"); sky.addColorStop(0.62, "#c9b6ff"); sky.addColorStop(1, "#2b1a4a");
+  c.fillStyle = sky; c.fillRect(0, 0, W, H);
+  c.fillStyle = "rgba(255,250,220,0.9)";
+  c.beginPath(); c.arc(W * 0.78, H * 0.16, Math.min(W, H) * 0.06, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "rgba(255,255,255,0.75)";
+  for (let k = 0; k < 6; k++) {
+    const cx = ((k * 0.37 + t * 0.01 * (1 + k % 3)) % 1.3 - 0.15) * W, cy = H * (0.08 + (k % 3) * 0.07);
+    for (let q = 0; q < 4; q++) c.fillRect(cx + q * W * 0.035, cy - (q % 2) * H * 0.012, W * 0.06, H * 0.025);
+  }
+  c.save();
+  c.translate(W / 2, hy); c.rotate(roll); c.translate(-W / 2, -hy);
+  const proj = (x, y, z) => { const dz = z - camZ; return [W / 2 + ((x - camX) * F) / dz, hy - ((y - camY) * F) / dz]; };
+  const near = 0.3, fogHex = "#c9b6ff";
+  for (let k = i + 22; k >= i - 1; k--) {
+    const b = blockAt(k);
+    const w = b.w / 2, d = 0.75, x0 = b.x - w, x1 = b.x + w, y0 = b.y - 1.2, y1 = b.y;
+    let z0 = b.z - d, z1 = b.z + d;
+    if (z1 - camZ < near) continue;
+    z0 = Math.max(z0, camZ + near);
+    const fog = clamp((z0 - camZ) / 70, 0, 0.85);
+    const face = (pts, col) => {
+      c.beginPath(); pts.forEach((p, n) => { const [sx, sy] = proj(...p); n ? c.lineTo(sx, sy) : c.moveTo(sx, sy); });
+      c.closePath(); c.fillStyle = col; c.fill();
+      c.strokeStyle = "rgba(0,0,0,0.25)"; c.lineWidth = 1.5; c.stroke();
+    };
+    if (camX < x0) face([[x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1]], shade(b.theme.side, 0.8, fog, fogHex));
+    if (camX > x1) face([[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], shade(b.theme.side, 0.8, fog, fogHex));
+    face([[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], shade(b.theme.side, 1, fog, fogHex));
+    if (camY > y1) {
+      face([[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], shade(b.theme.top, 1, fog, fogHex));
+      // grass/edge lip on the front of the top face
+      face([[x0, y1, z0], [x1, y1, z0], [x1, y1 - 0.18, z0], [x0, y1 - 0.18, z0]], shade(b.theme.top, 0.85, fog, fogHex));
+    }
+  }
+  c.restore();
+  // speed lines at the edges
+  c.strokeStyle = "rgba(255,255,255,0.18)"; c.lineWidth = 2;
+  const r = rng(Math.floor(t * 12));
+  for (let k = 0; k < 8; k++) {
+    const a = r() * Math.PI * 2, r0 = Math.min(W, H) * (0.45 + r() * 0.2);
+    c.beginPath(); c.moveTo(W / 2 + Math.cos(a) * r0, hy + Math.sin(a) * r0);
+    c.lineTo(W / 2 + Math.cos(a) * r0 * 1.4, hy + Math.sin(a) * r0 * 1.4); c.stroke();
+  }
+}
+
+// -- satisfying bounce: balls inside a spinning ring with a gap --
+function drawBounce(c, W, H, t, st) {
+  if (!st.sim || t < st.sim.t - 0.001) {
+    st.sim = { t: 0, rand: rng(42), balls: [{ x: 0, y: -0.3, vx: 0.55, vy: 0, hue: 0, trail: [] }], hits: 0 };
+  }
+  const S = st.sim, R = Math.min(W, H) * 0.38, cx = W / 2, cy = H / 2, r = 0.045;
+  const gapW = 0.55, spin = 1.1;
+  while (S.t < t) {
+    const dt = 1 / 240;
+    S.t += dt;
+    const ang = S.t * spin;
+    const next = [];
+    for (const b of S.balls) {
+      b.vy += 1.4 * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+      const d = Math.hypot(b.x, b.y);
+      if (!b.out && d + r > 1) {
+        let a = Math.atan2(b.y, b.x) - ang;
+        a = ((a % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+        if (Math.abs(a) < gapW / 2) b.out = true;
+        else {
+          const nx = b.x / d, ny = b.y / d, dot = b.vx * nx + b.vy * ny;
+          if (dot > 0) { b.vx = (b.vx - 2 * dot * nx) * 1.02; b.vy = (b.vy - 2 * dot * ny) * 1.02; }
+          b.x = nx * (1 - r); b.y = ny * (1 - r); b.hue += 37; S.hits++;
+          const sp = Math.hypot(b.vx, b.vy); if (sp > 2.6) { b.vx *= 2.6 / sp; b.vy *= 2.6 / sp; }
+        }
+      }
+      if (b.out && Math.hypot(b.x, b.y) > 2.2) {
+        if (S.balls.length < 40) for (let k = 0; k < 2; k++) {
+          const a = S.rand() * Math.PI * 2, sp = 0.4 + S.rand() * 0.6;
+          next.push({ x: 0, y: 0, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, hue: S.rand() * 360, trail: [] });
+        }
+        continue;
+      }
+      next.push(b);
+    }
+    S.balls = next;
+    if (Math.round(S.t * 240) % 4 === 0) for (const b of S.balls) { b.trail.push([b.x, b.y]); if (b.trail.length > 18) b.trail.shift(); }
+  }
+  c.fillStyle = "#0b0b14"; c.fillRect(0, 0, W, H);
+  const ang = t * spin;
+  c.lineWidth = R * 0.05; c.lineCap = "round";
+  c.strokeStyle = `hsl(${(t * 40) % 360},90%,60%)`;
+  c.shadowColor = c.strokeStyle; c.shadowBlur = 25;
+  c.beginPath(); c.arc(cx, cy, R + R * 0.03, ang + gapW / 2, ang + Math.PI * 2 - gapW / 2); c.stroke();
+  c.shadowBlur = 0;
+  for (const b of S.balls) {
+    b.trail.forEach(([x, y], k) => {
+      c.fillStyle = `hsla(${b.hue},90%,60%,${(k / b.trail.length) * 0.5})`;
+      c.beginPath(); c.arc(cx + x * R, cy + y * R, r * R * (k / b.trail.length), 0, Math.PI * 2); c.fill();
+    });
+    c.fillStyle = `hsl(${b.hue},90%,62%)`;
+    c.beginPath(); c.arc(cx + b.x * R, cy + b.y * R, r * R, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "rgba(255,255,255,0.6)";
+    c.beginPath(); c.arc(cx + b.x * R - r * R * 0.3, cy + b.y * R - r * R * 0.3, r * R * 0.3, 0, Math.PI * 2); c.fill();
+  }
+  c.fillStyle = "rgba(255,255,255,0.85)"; c.textAlign = "center"; c.textBaseline = "middle";
+  c.font = `800 ${Math.round(Math.min(W, H) * 0.05)}px ${FONT}`;
+  c.fillText(`Balls: ${S.balls.length}`, cx, cy + R * 1.25);
+}
+
+// -- synthwave highway --
+function drawHighway(c, W, H, t) {
+  const hy = H * 0.5;
+  const sky = c.createLinearGradient(0, 0, 0, hy);
+  sky.addColorStop(0, "#0d0221"); sky.addColorStop(0.7, "#541388"); sky.addColorStop(1, "#ff4f9a");
+  c.fillStyle = sky; c.fillRect(0, 0, W, hy);
+  const r = rng(7);
+  c.fillStyle = "#fff";
+  for (let k = 0; k < 70; k++) { const a = 0.5 + 0.5 * Math.sin(t * 2 + k); c.globalAlpha = a; c.fillRect(r() * W, r() * hy * 0.7, 2, 2); }
+  c.globalAlpha = 1;
+  const sr = Math.min(W, H) * 0.22, sx = W / 2, sy = hy - sr * 0.35;
+  const sun = c.createLinearGradient(0, sy - sr, 0, sy + sr);
+  sun.addColorStop(0, "#ffe53b"); sun.addColorStop(1, "#ff2e63");
+  c.save(); c.beginPath(); c.arc(sx, sy, sr, 0, Math.PI * 2); c.clip();
+  c.fillStyle = sun; c.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
+  c.fillStyle = "#541388";
+  for (let k = 0; k < 7; k++) { const yy = sy + sr * (0.1 + k * 0.13) - ((t * 20) % (sr * 0.13)); c.fillRect(sx - sr, yy, sr * 2, 2 + k * 1.6); }
+  c.restore();
+  c.fillStyle = "#1b0638";
+  c.beginPath(); c.moveTo(0, hy);
+  for (let k = 0; k <= 20; k++) { const x = (k / 20) * W; c.lineTo(x, hy - (Math.abs(Math.sin(k * 1.7)) * 0.6 + 0.2) * H * 0.07 * (k % 2 ? 1 : 0.5)); }
+  c.lineTo(W, hy); c.fill();
+  c.fillStyle = "#12002b"; c.fillRect(0, hy, W, H - hy);
+  c.strokeStyle = "#ff2ed1"; c.lineWidth = 2; c.shadowColor = "#ff2ed1"; c.shadowBlur = 10;
+  const F = H * 0.5;
+  for (let k = 1; k < 40; k++) {
+    const z = k - ((t * 6) % 1);
+    const y = hy + (F * 0.5) / z * 2.2;
+    if (y > H) continue;
+    c.globalAlpha = clamp(1.5 - z / 25, 0, 1);
+    c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
+  }
+  c.globalAlpha = 1;
+  for (let k = -12; k <= 12; k++) { c.beginPath(); c.moveTo(W / 2 + k * W * 0.02, hy); c.lineTo(W / 2 + k * W * 0.35, H); c.stroke(); }
+  c.shadowBlur = 0;
+  c.fillStyle = "#fff";
+  for (let k = 1; k < 30; k++) {
+    const z = k * 2 - ((t * 12) % 2);
+    const y0 = hy + (F * 1.1) / z, y1 = hy + (F * 1.1) / (z + 0.8);
+    if (y0 > H || z < 0.6) continue;
+    const w0 = (W * 0.02 * 6) / z;
+    c.beginPath(); c.moveTo(W / 2 - w0 / 2, y0); c.lineTo(W / 2 + w0 / 2, y0);
+    c.lineTo(W / 2 + w0 / 3, y1); c.lineTo(W / 2 - w0 / 3, y1); c.fill();
+  }
+}
+
+// -- neon tunnel --
+function drawTunnel(c, W, H, t) {
+  c.fillStyle = "#050510"; c.fillRect(0, 0, W, H);
+  const N = 36, F = Math.min(W, H) * 0.9;
+  const cx = W / 2 + Math.sin(t * 0.7) * W * 0.06, cy = H / 2 + Math.cos(t * 0.5) * H * 0.04;
+  for (let k = N; k > 0; k--) {
+    const z = k - ((t * 5) % 1);
+    const rad = F / z;
+    const rot = t * 0.4 + k * 0.12;
+    c.strokeStyle = `hsla(${(k * 12 + t * 60) % 360},100%,60%,${clamp(1.2 - z / N, 0, 1)})`;
+    c.lineWidth = Math.max(1, 14 / z);
+    c.beginPath();
+    for (let s = 0; s <= 6; s++) {
+      const a = rot + (s / 6) * Math.PI * 2;
+      const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+      s ? c.lineTo(x, y) : c.moveTo(x, y);
+    }
+    c.stroke();
+  }
+}
+
+// -- lava lamp blobs --
+function drawLava(c, W, H, t) {
+  c.fillStyle = "#14051f"; c.fillRect(0, 0, W, H);
+  c.globalCompositeOperation = "lighter";
+  for (let k = 0; k < 7; k++) {
+    const x = W * (0.5 + 0.38 * Math.sin(t * (0.21 + k * 0.05) + k * 2.1));
+    const y = H * (0.5 + 0.42 * Math.sin(t * (0.17 + k * 0.04) + k * 1.3));
+    const rad = Math.min(W, H) * (0.35 + 0.1 * Math.sin(t * 0.6 + k));
+    const g = c.createRadialGradient(x, y, 0, x, y, rad);
+    g.addColorStop(0, `hsla(${(k * 50 + t * 15) % 360},90%,58%,0.75)`);
+    g.addColorStop(1, "hsla(0,0%,0%,0)");
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+  }
+  c.globalCompositeOperation = "source-over";
+}
+
+// -- warp stars --
+const STARS = (() => { const r = rng(99); return Array.from({ length: 450 }, () => ({ x: r() * 2 - 1, y: r() * 2 - 1, z: r() })); })();
+function drawWarp(c, W, H, t) {
+  c.fillStyle = "#02010a"; c.fillRect(0, 0, W, H);
+  const F = Math.max(W, H) * 0.5, sp = 0.35;
+  for (const s of STARS) {
+    const z = 1 - ((s.z + t * sp) % 1) + 0.02;
+    const z2 = z + 0.04;
+    const x1 = W / 2 + (s.x * F) / z, y1 = H / 2 + (s.y * F) / z;
+    const x2 = W / 2 + (s.x * F) / z2, y2 = H / 2 + (s.y * F) / z2;
+    c.strokeStyle = `hsla(${200 + s.x * 60},80%,${70 + (1 - z) * 30}%,${clamp(1.2 - z, 0, 1)})`;
+    c.lineWidth = Math.max(1, 3 * (1 - z));
+    c.beginPath(); c.moveTo(x2, y2); c.lineTo(x1, y1); c.stroke();
+  }
+}
+
+// ---------- background picker (shared UI) ----------
+class BgPicker {
+  constructor(container, { def = "parkour", allowAI = false } = {}) {
+    this.kind = def; this.palette = PALETTES[0];
+    this.images = []; this.videos = []; this.vidIdx = 0; this.ai = []; this.aiKey = ""; this.state = {};
+    const kinds = [...Object.keys(BG_ANIM), "videos", "images", ...(allowAI ? ["ai"] : []), "gradient"];
+    const names = { videos: "🎬 My videos", images: "🖼 My images", ai: "✨ AI images", gradient: "Plain color" };
+    const grid = document.createElement("div");
+    grid.className = "bgthumbs";
+    this.thumbs = {};
+    for (const k of kinds) {
+      const b = document.createElement("button");
+      b.className = "bgthumb" + (k === def ? " active" : "");
+      const cv = document.createElement("canvas");
+      cv.width = 120; cv.height = 80;
+      const label = document.createElement("div");
+      label.textContent = BG_ANIM[k] ? BG_ANIM[k].name : names[k];
+      b.append(cv, label);
+      b.onclick = () => this.select(k);
+      grid.appendChild(b);
+      this.thumbs[k] = cv;
+    }
+    container.appendChild(grid);
+    this.sub = document.createElement("div");
+    this.sub.className = "sub";
+    this.sub.innerHTML = `
+      <div data-k="videos" class="hidden"><label>Upload one or more clips (gameplay, B-roll…). They loop silently behind your video.</label><input type="file" accept="video/*" multiple></div>
+      <div data-k="images" class="hidden"><label>Upload images: one is shown per sentence, with a slow zoom.</label><input type="file" accept="image/*" multiple></div>
+      <div data-k="ai" class="hidden"><label>Image style</label><select>
+        <option value="cinematic photo, dramatic lighting, highly detailed">Cinematic photo</option>
+        <option value="digital illustration, vibrant colors, trending art">Illustration</option>
+        <option value="3d render, pixar style lighting, soft colors">3D render</option>
+        <option value="anime style, detailed background, vivid">Anime</option>
+        <option value="dark moody photo, film grain, mysterious">Dark &amp; moody</option>
+      </select><p class="hint" style="margin:6px 0 0">One AI picture is made for each sentence when you click Preview or Export. This uses the free Pollinations.ai service and can take a minute.</p></div>
+      <div data-k="gradient" class="hidden"><div class="swatches"></div></div>`;
+    container.appendChild(this.sub);
+    const sw = this.sub.querySelector("[data-k=gradient] .swatches");
+    PALETTES.forEach((p, i) => {
+      const s = document.createElement("div");
+      s.className = "swatch" + (i === 0 ? " active" : "");
+      s.style.background = `linear-gradient(135deg, ${p[0]}, ${p[1]})`;
+      s.onclick = () => { sw.querySelectorAll(".swatch").forEach((x) => x.classList.remove("active")); s.classList.add("active"); this.palette = p; refresh(); };
+      sw.appendChild(s);
+    });
+    this.sub.querySelector("[data-k=images] input").onchange = async (e) => { this.images = await Promise.all([...e.target.files].map(loadImage)); refresh(); };
+    this.sub.querySelector("[data-k=videos] input").onchange = (e) => this.setVideos([...e.target.files]);
+    this.aiStyle = this.sub.querySelector("[data-k=ai] select");
+    this.drawThumbs();
+    this.select(def);
+  }
+  drawThumbs() {
+    for (const [k, cv] of Object.entries(this.thumbs)) {
+      const c = cv.getContext("2d");
+      if (BG_ANIM[k]) BG_ANIM[k].draw(c, cv.width, cv.height, 3.3, {});
+      else {
+        drawGradientBg(c, cv.width, cv.height, 0, k === "gradient" ? PALETTES[0] : ["#2a3040", "#1e2330"]);
+        c.fillStyle = "#fff"; c.font = "28px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+        c.fillText({ videos: "🎬", images: "🖼", ai: "✨", gradient: "" }[k], cv.width / 2, cv.height / 2);
+      }
+    }
+  }
+  select(k) {
+    this.kind = k;
+    Object.keys(this.thumbs).forEach((x) => this.thumbs[x].parentElement.classList.toggle("active", x === k));
+    this.sub.querySelectorAll("[data-k]").forEach((d) => d.classList.toggle("hidden", d.dataset.k !== k));
+    refresh();
+  }
+  setVideos(files) {
+    this.videos.forEach((v) => URL.revokeObjectURL(v.src));
+    this.videos = files.map((f) => {
+      const v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.preload = "auto";
+      v.src = URL.createObjectURL(f);
+      v.onended = () => this.nextVideo();
+      v.onloadeddata = () => refresh();
+      return v;
+    });
+    this.vidIdx = 0;
+  }
+  nextVideo() {
+    if (!this.videos.length) return;
+    this.vidIdx = (this.vidIdx + 1) % this.videos.length;
+    const v = this.videos[this.vidIdx];
+    v.currentTime = 0; v.play().catch(() => {});
+  }
+  start() {
+    this.state = {};
+    if (this.kind === "videos" && this.videos.length) {
+      this.vidIdx = 0;
+      const v = this.videos[0];
+      v.currentTime = 0; v.play().catch(() => {});
+    }
+  }
+  stop() { this.videos.forEach((v) => v.pause()); }
+  // Generate one AI image per sentence (cached by text+style+size)
+  async prepare(sentences, W, H) {
+    if (this.kind !== "ai") return;
+    const style = this.aiStyle.value;
+    const key = JSON.stringify([sentences, style, W, H]);
+    if (key === this.aiKey) return;
+    const out = [];
+    for (let i = 0; i < sentences.length; i++) {
+      status(`✨ Creating AI image ${i + 1} of ${sentences.length}…`);
+      const prompt = `${sentences[i]} — ${style}, no text`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${W}&height=${H}&nologo=true&seed=${(i + 1) * 101}`;
+      out.push(await new Promise((res) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        const timer = setTimeout(() => res(null), 90000);
+        img.onload = () => { clearTimeout(timer); res(img); };
+        img.onerror = () => { clearTimeout(timer); res(null); };
+        img.src = url;
+      }));
+    }
+    const ok = out.filter(Boolean).length;
+    if (!ok) status("AI images couldn't be loaded right now, so an animated background is used instead.");
+    this.ai = out; this.aiKey = key;
+  }
+  draw(c, W, H, t, seg = 0, segStart = 0) {
+    const k = this.kind;
+    if (BG_ANIM[k]) return BG_ANIM[k].draw(c, W, H, t, this.state);
+    if (k === "videos" && this.videos.length) {
+      c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
+      return drawCover(c, this.videos[this.vidIdx] || this.videos[0], W, H);
+    }
+    const list = k === "images" ? this.images : k === "ai" ? this.ai : [];
+    const img = list.length ? list[seg % list.length] : null;
+    if (img) {
+      const local = t - segStart;
+      c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
+      drawCover(c, img, W, H, 1.06 + local * 0.025, Math.sin(seg * 1.7) * local * 5, Math.cos(seg) * local * 3);
+      return;
+    }
+    if (k === "gradient") return drawGradientBg(c, W, H, t, this.palette);
+    // fallback while media is missing
+    drawLava(c, W, H, t);
+  }
 }
 
 // ---------- TEXT TO VIDEO ----------
 const textTool = {
-  palette: PALETTES[0], images: [], voice: null, music: null,
+  voice: null, music: null, ai: null,
   init() {
-    swatchPicker($("t-swatches"), (p) => { this.palette = p; this.images = []; $("t-images").value = ""; refresh(); });
-    $("t-images").onchange = async (e) => { this.images = await Promise.all([...e.target.files].map(loadImage)); refresh(); };
+    this.bg = new BgPicker($("t-bg"), { def: "parkour", allowAI: true });
     $("t-voice").onchange = async (e) => { if (e.target.files[0]) this.setVoice(await loadAudio(e.target.files[0])); };
     $("t-music").onchange = async (e) => { this.music = e.target.files[0] ? await loadAudio(e.target.files[0]) : null; };
-    $("t-wpm").oninput = (e) => { $("t-wpm-v").textContent = e.target.value; refresh(); };
+    $("t-wpm").oninput = (e) => { $("t-wpm-v").textContent = e.target.value; };
+    $("t-speed").oninput = (e) => { $("t-speed-v").textContent = (e.target.value / 100).toFixed(1) + "×"; };
     $("t-musicvol").oninput = (e) => { $("t-musicvol-v").textContent = e.target.value + "%"; };
     $("t-rec").onclick = () => this.toggleRecord();
     $("t-hooks-btn").onclick = () => this.showHooks();
+    $("t-voicesrc").onchange = () => {
+      const v = $("t-voicesrc").value;
+      $("t-ai-box").classList.toggle("hidden", v !== "ai");
+      $("t-own-box").classList.toggle("hidden", v !== "own");
+      $("t-none-box").classList.toggle("hidden", v !== "none");
+      refresh();
+    };
+    $("t-voice-test").onclick = () => testVoice($("t-voice-pick").value, +$("t-speed").value / 100, $("t-voice-test"));
   },
   setVoice(buf) {
     this.voice = buf;
@@ -575,53 +1131,255 @@ const textTool = {
       box.appendChild(b);
     });
   },
+  sentences() {
+    const text = $("t-script").value;
+    const cues = parseSRT(text);
+    return cues ? cues.map((c) => c.text) : splitSentences(text);
+  },
+  aiKey() { return JSON.stringify([this.sentences(), $("t-voice-pick").value, $("t-speed").value]); },
+  async prepare() {
+    const [W, H] = SIZES[$("t-aspect").value];
+    const sentences = this.sentences();
+    if ($("t-voicesrc").value === "ai" && (!this.ai || this.ai.key !== this.aiKey())) {
+      const voice = $("t-voice-pick").value, speed = +$("t-speed").value / 100;
+      const bufs = [];
+      for (let i = 0; i < sentences.length; i++) {
+        if (TTS.loaded) status(`🔊 Generating AI voice… ${i + 1}/${sentences.length}`);
+        else status("Loading AI voice…");
+        bufs.push(await TTS.say(sentences[i], voice, speed));
+      }
+      const { buffer, segs } = concatBuffers(bufs);
+      this.ai = { key: this.aiKey(), buffer, segs: segs.map((s, i) => ({ ...s, text: sentences[i] })) };
+    }
+    await this.bg.prepare(sentences, W, H);
+  },
   build() {
     const [W, H] = SIZES[$("t-aspect").value];
     const text = $("t-script").value;
-    const wc = wordCount(text);
-    let duration;
-    if (this.voice) duration = this.voice.duration;
-    else if (wc.srtEnd) duration = wc.srtEnd + 0.5;
-    else duration = Math.max(2, (wc.n * 60) / +$("t-wpm").value + 0.8);
-    const words = timedWords(text, this.voice ? duration : duration - 0.6);
+    const src = $("t-voicesrc").value;
+    let duration, words, voice = null;
+    if (src === "ai" && this.ai && this.ai.key === this.aiKey()) {
+      voice = this.ai.buffer;
+      duration = voice.duration;
+      words = wordsFromSegments(this.ai.segs);
+    } else if (src === "own" && this.voice) {
+      voice = this.voice;
+      duration = voice.duration;
+      words = timedWords(text, duration);
+    } else {
+      const wc = wordCount(text);
+      const wpm = src === "ai" ? 165 * +$("t-speed").value / 100 : +$("t-wpm").value;
+      duration = wc.srtEnd ? wc.srtEnd + 0.5 : Math.max(2, (wc.n * 60) / wpm + 0.8);
+      words = timedWords(text, wc.srtEnd ? duration : duration - 0.6);
+    }
     const style = $("t-style").value, title = $("t-title").value;
-    const images = this.images, palette = this.palette;
-    const voice = this.voice, music = this.music, mvol = $("t-musicvol").value / 100;
+    const music = this.music, mvol = $("t-musicvol").value / 100, bg = this.bg;
+    const segStarts = [];
+    for (const w of words) if (!segStarts.some((s) => s.s === w.s)) segStarts.push({ s: w.s, start: w.start });
     return {
       W, H, duration,
       draw(c, t) {
-        let si = 0;
-        for (const w of words) if (w.start <= t) si = w.s;
-        if (images.length) {
-          const img = images[si % images.length];
-          const sStart = (words.find((w) => w.s === si) || { start: 0 }).start;
-          const local = t - sStart;
-          c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
-          drawCover(c, img, W, H, 1.05 + local * 0.02, Math.sin(si) * local * 4, 0);
-          c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(0, 0, W, H);
-        } else {
-          drawGradientBg(c, W, H, t, palette);
-        }
+        let seg = 0;
+        for (let k = 0; k < segStarts.length; k++) if (segStarts[k].start <= t) seg = k;
+        bg.draw(c, W, H, t, seg, segStarts[seg] ? segStarts[seg].start : 0);
         drawTitle(c, title, W, H);
-        drawCaptions(c, words, t, W, H, style, H > W ? 0.62 : 0.72);
+        drawCaptions(c, words, t, W, H, style, H > W ? 0.6 : 0.72);
       },
       start(ac, dests) {
+        bg.start();
         const nodes = [];
         if (voice) nodes.push(playBuffer(ac, voice, dests));
         if (music) nodes.push(playBuffer(ac, music, dests, { loop: true, gain: mvol }));
-        return () => nodes.forEach((n) => { try { n.stop(); } catch {} });
+        return () => { bg.stop(); nodes.forEach((n) => { try { n.stop(); } catch {} }); };
       },
     };
   },
 };
 
+async function testVoice(voice, speed, btn) {
+  btn.disabled = true;
+  try {
+    const ac = getAC(); await ac.resume();
+    const buf = await TTS.say("Hey! This is what my voice sounds like in your videos.", voice, speed);
+    status("Ready.");
+    playBuffer(ac, buf, [ac.destination]);
+  } catch (err) { status("AI voice failed to load: " + err.message); }
+  btn.disabled = false;
+}
+
+// ---------- CHAT STORY ----------
+const chatTool = {
+  music: null,
+  init() {
+    this.bg = new BgPicker($("c-bg"), { def: "parkour" });
+    $("c-pace").oninput = (e) => { $("c-pace-v").textContent = (e.target.value / 100).toFixed(1) + "×"; };
+    $("c-music").onchange = async (e) => { this.music = e.target.files[0] ? await loadAudio(e.target.files[0]) : null; };
+    $("c-voiced").onchange = () => { $("c-voice-row").classList.toggle("hidden", $("c-voiced").value !== "ai"); refresh(); };
+    $("c-layout").onchange = () => { $("c-bg").classList.toggle("hidden", $("c-layout").value === "plain"); refresh(); };
+  },
+  messages() {
+    return $("c-script").value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+      const m = l.match(/^([^:]{1,24}):\s*(.*)$/);
+      if (m) return { me: m[1].trim().toLowerCase() === "me", text: m[2] };
+      return { me: false, text: l };
+    }).filter((m) => m.text);
+  },
+  voiceFor(m) { return m.me ? $("c-voice-me").value : $("c-voice-them").value; },
+  speed() { return Math.min(1.4, Math.max(0.8, +$("c-pace").value / 100)); },
+  async prepare() {
+    if ($("c-voiced").value !== "ai") return;
+    const msgs = this.messages();
+    for (let i = 0; i < msgs.length; i++) {
+      if (TTS.loaded) status(`🔊 Generating AI voices… ${i + 1}/${msgs.length}`);
+      else status("Loading AI voice…");
+      await TTS.say(msgs[i].text, this.voiceFor(msgs[i]), this.speed());
+    }
+  },
+  build() {
+    const [W, H] = SIZES[$("c-aspect").value];
+    const name = $("c-name").value || "Contact";
+    const dark = $("c-theme").value === "dark";
+    const layout = $("c-layout").value;
+    const pace = 100 / $("c-pace").value;
+    const sound = $("c-sound").checked;
+    const voiced = $("c-voiced").value === "ai";
+    const music = this.music, bg = this.bg;
+    const msgs = this.messages();
+    msgs.forEach((m) => { m.buf = voiced ? TTS.cached(m.text, this.voiceFor(m), this.speed()) : null; });
+    let t = 0.8;
+    msgs.forEach((m, i) => {
+      const prev = msgs[i - 1];
+      // time spent on the previous message: its narration, or a reading pause
+      const read = prev ? (prev.buf ? prev.buf.duration + 0.25 : Math.min(1.6, 0.4 + prev.text.length * 0.025) * pace) : 0;
+      if (m.me) { t += read + (0.3 + (voiced ? 0 : Math.min(1.2, m.text.length * 0.02))) * pace; m.typingFrom = null; }
+      else { t += read; m.typingFrom = t; t += (voiced ? 0.6 : Math.min(2, 0.7 + m.text.length * 0.025)) * pace; }
+      m.at = t;
+    });
+    const last = msgs[msgs.length - 1];
+    const duration = t + (last && last.buf ? last.buf.duration : 0) + 2;
+    const C = dark
+      ? { bg: "#000", header: "#1c1c1e", text: "#fff", sub: "#8e8e93", them: "#2c2c2e", themText: "#fff", me: "#0a84ff", meText: "#fff" }
+      : { bg: "#fff", header: "#f6f6f6", text: "#000", sub: "#8e8e93", them: "#e9e9eb", themText: "#000", me: "#0a84ff", meText: "#fff" };
+    const Hc = layout === "split" ? Math.round(H * (H > W ? 0.56 : 0.62)) : H;
+    return {
+      W, H, duration,
+      draw(c, now) {
+        if (layout !== "plain") bg.draw(c, W, H, now);
+        c.save();
+        if (layout === "split") {
+          roundRect(c, 0, 0, W, Hc, 0); c.clip();
+          c.fillStyle = C.bg; c.fillRect(0, 0, W, Hc);
+        } else if (layout === "plain") {
+          c.fillStyle = C.bg; c.fillRect(0, 0, W, H);
+        }
+        drawChat(c, now, W, Hc, H, msgs, C, dark, name, layout === "over");
+        c.restore();
+        if (layout === "split") { c.fillStyle = "rgba(0,0,0,0.6)"; c.fillRect(0, Hc - 3, W, 3); }
+      },
+      start(ac, dests) {
+        bg.start();
+        const nodes = [];
+        if (music) nodes.push(playBuffer(ac, music, dests, { loop: true, gain: 0.2 }));
+        msgs.forEach((m) => {
+          if (m.buf) nodes.push(playBuffer(ac, m.buf, dests, { when: m.at + 0.05 }));
+          if (!sound) return;
+          const o = ac.createOscillator(), g = ac.createGain();
+          const t0 = ac.currentTime + m.at;
+          o.type = "sine";
+          o.frequency.setValueAtTime(m.me ? 880 : 660, t0);
+          o.frequency.exponentialRampToValueAtTime(m.me ? 1320 : 990, t0 + 0.08);
+          g.gain.setValueAtTime(0, t0);
+          g.gain.linearRampToValueAtTime(0.2, t0 + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+          o.connect(g); dests.forEach((d) => g.connect(d));
+          o.start(t0); o.stop(t0 + 0.3);
+          nodes.push(o);
+        });
+        return () => { bg.stop(); nodes.forEach((n) => { try { n.stop(); } catch {} }); };
+      },
+    };
+  },
+};
+
+function drawChat(c, now, W, Hc, H, msgs, C, dark, name, over) {
+  const fs = Math.round(Math.min(W, H) * (H > W ? 0.042 : 0.032));
+  const headerH = fs * 4.4, footH = fs * 2.6;
+  c.font = `500 ${fs}px ${FONT}`;
+  const maxBW = W * 0.7, padX = fs * 0.7, padY = fs * 0.5, lh = fs * 1.3, gap = fs * 0.35;
+  const items = [];
+  msgs.forEach((msg, i) => {
+    if (!msg.me && msg.typingFrom !== null && now >= msg.typingFrom && now < msg.at) items.push({ typing: true, start: msg.typingFrom, h: lh + padY * 2, w: fs * 3.2, extra: fs * 0.5 });
+    if (now >= msg.at) {
+      const lines = wrapText(c, msg.text, maxBW - padX * 2);
+      const w = Math.max(...lines.map((l) => c.measureText(l).width)) + padX * 2;
+      const sameAsPrev = i > 0 && msgs[i - 1].me === msg.me;
+      items.push({ msg, lines, w, h: lines.length * lh + padY * 2, start: msg.at, extra: sameAsPrev ? 0 : fs * 0.5 });
+    }
+  });
+  const totalH = items.reduce((a, b) => a + b.h + gap + (b.extra || 0), 0);
+  const viewTop = headerH + fs * 0.4, viewBottom = Hc - (over ? footH * 2 : footH) - fs * 0.6;
+  const offset = Math.max(0, totalH - (viewBottom - viewTop));
+  let y = viewTop - offset;
+  c.save();
+  c.beginPath(); c.rect(0, headerH, W, viewBottom - headerH + fs * 0.6); c.clip();
+  for (const it of items) {
+    y += it.extra || 0;
+    const p = Math.min(1, (now - it.start) / 0.18);
+    const me = it.msg && it.msg.me;
+    const x = me ? W - fs * 0.8 - it.w : fs * 0.8;
+    c.save();
+    c.globalAlpha = p;
+    const ox = me ? x + it.w : x, oy = y + it.h;
+    c.translate(ox, oy); c.scale(0.85 + 0.15 * p, 0.85 + 0.15 * p); c.translate(-ox, -oy);
+    if (over) { c.shadowColor = "rgba(0,0,0,0.35)"; c.shadowBlur = fs * 0.6; }
+    c.fillStyle = me ? C.me : C.them;
+    roundRect(c, x, y, it.w, it.h, fs * 0.9); c.fill();
+    c.shadowBlur = 0;
+    if (it.typing) {
+      for (let d = 0; d < 3; d++) {
+        const b = Math.sin(now * 8 - d * 0.8) * 0.5 + 0.5;
+        c.fillStyle = dark ? `rgba(255,255,255,${0.4 + b * 0.5})` : `rgba(0,0,0,${0.3 + b * 0.4})`;
+        c.beginPath(); c.arc(x + it.w * (0.28 + d * 0.22), y + it.h / 2 - b * fs * 0.12, fs * 0.17, 0, Math.PI * 2); c.fill();
+      }
+    } else {
+      c.fillStyle = me ? C.meText : C.themText;
+      c.textAlign = "left"; c.textBaseline = "middle";
+      it.lines.forEach((l, li) => c.fillText(l, x + padX, y + padY + lh * (li + 0.5)));
+    }
+    c.restore();
+    y += it.h + gap;
+  }
+  c.restore();
+  // header
+  c.fillStyle = C.header; c.fillRect(0, 0, W, headerH);
+  c.fillStyle = "rgba(128,128,128,0.4)"; c.fillRect(0, headerH - 1, W, 1);
+  const av = headerH * 0.48;
+  const g = c.createLinearGradient(0, headerH * 0.1, 0, headerH * 0.1 + av);
+  g.addColorStop(0, "#a5a9b5"); g.addColorStop(1, "#6e7280");
+  c.fillStyle = g;
+  c.beginPath(); c.arc(W / 2, headerH * 0.1 + av / 2, av / 2, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
+  c.font = `600 ${av * 0.5}px ${FONT}`;
+  c.fillText((name.trim()[0] || "?").toUpperCase(), W / 2, headerH * 0.1 + av / 2);
+  c.fillStyle = C.text; c.font = `500 ${fs * 0.8}px ${FONT}`;
+  c.fillText(name + " ›", W / 2, headerH * 0.8);
+  c.fillStyle = "#0a84ff"; c.textAlign = "left"; c.font = `400 ${fs * 1.6}px ${FONT}`;
+  c.fillText("‹", fs * 0.6, headerH * 0.42);
+  // footer input bar
+  if (!over) {
+    c.fillStyle = C.bg; c.fillRect(0, Hc - footH, W, footH);
+    c.strokeStyle = C.sub; c.lineWidth = 2;
+    roundRect(c, fs * 0.8, Hc - footH + footH * 0.2, W - fs * 1.6, footH * 0.58, footH * 0.29); c.stroke();
+    c.fillStyle = C.sub; c.textAlign = "left"; c.font = `400 ${fs * 0.8}px ${FONT}`;
+    c.fillText("Text Message", fs * 1.5, Hc - footH + footH * 0.5);
+  }
+}
+
 // ---------- AUDIO TO VIDEO ----------
 const audioTool = {
-  palette: PALETTES[6], buffer: null, cover: null, analyser: null,
+  buffer: null, cover: null, analyser: null,
   init() {
-    swatchPicker($("a-swatches"), (p) => { this.palette = p; refresh(); });
-    $("a-swatches").children[0].classList.remove("active");
-    $("a-swatches").children[6].classList.add("active");
+    this.bg = new BgPicker($("a-bg"), { def: "lava" });
     $("a-file").onchange = async (e) => {
       if (!e.target.files[0]) return;
       status("Decoding audio…");
@@ -639,22 +1397,22 @@ const audioTool = {
     const text = $("a-transcript").value.trim();
     const words = text ? timedWords(text, duration) : [];
     const title = $("a-title").value, sub = $("a-sub").value, viz = $("a-viz").value;
-    const cover = this.cover, palette = this.palette;
+    const cover = this.cover, bg = this.bg;
     const self = this;
     const freq = new Uint8Array(128);
     return {
       W, H, duration, needs: buffer ? null : "Upload an audio file first.",
       draw(c, t) {
-        drawGradientBg(c, W, H, t, palette);
+        bg.draw(c, W, H, t);
+        c.fillStyle = "rgba(0,0,0,0.35)"; c.fillRect(0, 0, W, H);
         if (self.analyser) self.analyser.getByteFrequencyData(freq); else freq.fill(0);
         const bass = (freq[2] + freq[4] + freq[6]) / 765;
         const m = Math.min(W, H);
         const cy = H > W ? H * 0.34 : H * 0.42;
         const coverSize = m * (H > W ? 0.55 : 0.42) * (1 + bass * 0.05);
         const cx = W > H ? W * 0.3 : W / 2;
-        // visualizer
-        c.fillStyle = "rgba(255,255,255,0.85)";
-        c.strokeStyle = "rgba(255,255,255,0.85)";
+        c.fillStyle = "rgba(255,255,255,0.9)";
+        c.strokeStyle = "rgba(255,255,255,0.9)";
         if (viz === "circle") {
           const r = coverSize * 0.62;
           for (let k = 0; k < 96; k++) {
@@ -678,7 +1436,7 @@ const audioTool = {
         } else {
           c.lineWidth = 4;
           c.beginPath();
-          const base = H > W ? H * 0.88 : H * 0.88;
+          const base = H * 0.88;
           for (let k = 0; k <= 64; k++) {
             const v = freq[k] / 255;
             const x = W * 0.06 + (k / 64) * W * 0.88;
@@ -687,7 +1445,6 @@ const audioTool = {
           }
           c.stroke();
         }
-        // cover
         c.save();
         roundRect(c, cx - coverSize / 2, cy - coverSize / 2, coverSize, coverSize, coverSize * 0.08);
         c.clip();
@@ -703,17 +1460,15 @@ const audioTool = {
           c.fillText("♪", cx, cy);
         }
         c.restore();
-        // text
         c.textAlign = "center"; c.textBaseline = "alphabetic";
         const tx = W > H ? W * 0.68 : W / 2;
         const ty = W > H ? H * 0.38 : cy + coverSize / 2 + m * 0.11;
         c.fillStyle = "#fff";
         c.font = `800 ${m * 0.065}px ${FONT}`;
         c.fillText(title, tx, ty);
-        c.fillStyle = "rgba(255,255,255,0.7)";
+        c.fillStyle = "rgba(255,255,255,0.75)";
         c.font = `500 ${m * 0.04}px ${FONT}`;
         c.fillText(sub, tx, ty + m * 0.06);
-        // progress
         const pw = W > H ? W * 0.5 : W * 0.7, px = tx - pw / 2, py = ty + m * 0.11;
         c.fillStyle = "rgba(255,255,255,0.25)"; roundRect(c, px, py, pw, 6, 3); c.fill();
         c.fillStyle = "#fff"; roundRect(c, px, py, pw * Math.min(1, t / duration), 6, 3); c.fill();
@@ -725,11 +1480,12 @@ const audioTool = {
         }
       },
       start(ac, dests) {
+        bg.start();
         self.analyser = ac.createAnalyser();
         self.analyser.fftSize = 256;
         self.analyser.smoothingTimeConstant = 0.75;
         const src = playBuffer(ac, buffer, [...dests, self.analyser]);
-        return () => { try { src.stop(); } catch {} self.analyser = null; };
+        return () => { bg.stop(); try { src.stop(); } catch {} self.analyser = null; };
       },
     };
   },
@@ -806,140 +1562,16 @@ const videoTool = {
   },
 };
 
-// ---------- CHAT STORY ----------
-const chatTool = {
-  music: null,
-  init() {
-    $("c-pace").oninput = (e) => { $("c-pace-v").textContent = (e.target.value / 100).toFixed(1) + "×"; refresh(); };
-    $("c-music").onchange = async (e) => { this.music = e.target.files[0] ? await loadAudio(e.target.files[0]) : null; };
-  },
-  build() {
-    const [W, H] = SIZES[$("c-aspect").value];
-    const name = $("c-name").value || "Contact";
-    const dark = $("c-theme").value === "dark";
-    const pace = 100 / $("c-pace").value;
-    const sound = $("c-sound").checked;
-    const music = this.music;
-    const msgs = $("c-script").value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
-      const m = l.match(/^([^:]{1,24}):\s*(.*)$/);
-      if (m) return { me: m[1].trim().toLowerCase() === "me", text: m[2] };
-      return { me: false, text: l };
-    }).filter((m) => m.text);
-    let t = 0.8;
-    msgs.forEach((m, i) => {
-      const prev = msgs[i - 1];
-      const read = prev ? Math.min(1.6, 0.4 + prev.text.length * 0.025) : 0;
-      if (m.me) { t += (read + 0.3 + Math.min(1.2, m.text.length * 0.02)) * pace; m.typingFrom = null; }
-      else { t += read * pace; m.typingFrom = t; t += Math.min(2, 0.7 + m.text.length * 0.025) * pace; }
-      m.at = t;
-    });
-    const duration = t + 2.2;
-    const C = dark
-      ? { bg: "#000", header: "#1c1c1e", text: "#fff", sub: "#8e8e93", them: "#2c2c2e", themText: "#fff", me: "#0a84ff", meText: "#fff", input: "#1c1c1e" }
-      : { bg: "#fff", header: "#f6f6f6", text: "#000", sub: "#8e8e93", them: "#e9e9eb", themText: "#000", me: "#0a84ff", meText: "#fff", input: "#f2f2f2" };
-    return {
-      W, H, duration,
-      draw(c, now) {
-        const m = Math.min(W, H);
-        const fs = Math.round(m * (H > W ? 0.042 : 0.034));
-        const headerH = m * 0.2, footH = m * 0.12;
-        c.fillStyle = C.bg; c.fillRect(0, 0, W, H);
-        // messages
-        c.font = `400 ${fs}px ${FONT}`;
-        const maxBW = W * 0.68, padX = fs * 0.7, padY = fs * 0.5, lh = fs * 1.3, gap = fs * 0.35;
-        const items = [];
-        msgs.forEach((msg, i) => {
-          if (!msg.me && msg.typingFrom !== null && now >= msg.typingFrom && now < msg.at) items.push({ typing: true, start: msg.typingFrom, h: lh + padY * 2, w: fs * 3.2 });
-          if (now >= msg.at) {
-            const lines = wrapText(c, msg.text, maxBW - padX * 2);
-            const w = Math.max(...lines.map((l) => c.measureText(l).width)) + padX * 2;
-            const sameAsPrev = i > 0 && msgs[i - 1].me === msg.me;
-            items.push({ msg, lines, w, h: lines.length * lh + padY * 2, start: msg.at, extra: sameAsPrev ? 0 : fs * 0.5 });
-          }
-        });
-        const totalH = items.reduce((a, b) => a + b.h + gap + (b.extra || 0), 0);
-        const viewTop = headerH + fs, viewBottom = H - footH - fs * 0.6;
-        const offset = Math.max(0, totalH - (viewBottom - viewTop));
-        let y = viewTop - offset;
-        for (const it of items) {
-          y += it.extra || 0;
-          const age = now - it.start;
-          const p = Math.min(1, age / 0.18);
-          const me = it.msg && it.msg.me;
-          const x = me ? W - fs * 0.8 - it.w : fs * 0.8;
-          c.save();
-          c.globalAlpha = p;
-          const ox = me ? x + it.w : x, oy = y + it.h;
-          c.translate(ox, oy); c.scale(0.85 + 0.15 * p, 0.85 + 0.15 * p); c.translate(-ox, -oy);
-          c.fillStyle = me ? C.me : C.them;
-          roundRect(c, x, y, it.w, it.h, fs * 0.9); c.fill();
-          if (it.typing) {
-            for (let d = 0; d < 3; d++) {
-              const b = Math.sin(now * 8 - d * 0.8) * 0.5 + 0.5;
-              c.fillStyle = dark ? `rgba(255,255,255,${0.4 + b * 0.5})` : `rgba(0,0,0,${0.3 + b * 0.4})`;
-              c.beginPath(); c.arc(x + it.w * (0.28 + d * 0.22), y + it.h / 2 - b * fs * 0.12, fs * 0.17, 0, Math.PI * 2); c.fill();
-            }
-          } else {
-            c.fillStyle = me ? C.meText : C.themText;
-            c.textAlign = "left"; c.textBaseline = "middle";
-            it.lines.forEach((l, li) => c.fillText(l, x + padX, y + padY + lh * (li + 0.5)));
-          }
-          c.restore();
-          y += it.h + gap;
-        }
-        // header (drawn over scrolled messages)
-        c.fillStyle = C.header; c.fillRect(0, 0, W, headerH);
-        c.fillStyle = C.sub; c.fillRect(0, headerH - 1, W, 1);
-        const av = headerH * 0.42;
-        const g = c.createLinearGradient(0, headerH * 0.12, 0, headerH * 0.12 + av);
-        g.addColorStop(0, "#a5a9b5"); g.addColorStop(1, "#6e7280");
-        c.fillStyle = g;
-        c.beginPath(); c.arc(W / 2, headerH * 0.12 + av / 2, av / 2, 0, Math.PI * 2); c.fill();
-        c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
-        c.font = `600 ${av * 0.5}px ${FONT}`;
-        c.fillText(name.trim()[0]?.toUpperCase() || "?", W / 2, headerH * 0.12 + av / 2);
-        c.fillStyle = C.text; c.font = `500 ${fs * 0.75}px ${FONT}`;
-        c.fillText(name + " ›", W / 2, headerH * 0.8);
-        c.fillStyle = "#0a84ff"; c.textAlign = "left"; c.font = `400 ${fs * 1.4}px ${FONT}`;
-        c.fillText("‹", fs * 0.6, headerH * 0.4);
-        // footer
-        c.fillStyle = C.bg; c.fillRect(0, H - footH, W, footH);
-        c.strokeStyle = C.sub; c.lineWidth = 2;
-        roundRect(c, fs * 0.8, H - footH + footH * 0.2, W - fs * 1.6, footH * 0.5, footH * 0.25); c.stroke();
-        c.fillStyle = C.sub; c.textAlign = "left"; c.font = `400 ${fs * 0.8}px ${FONT}`;
-        c.fillText("Text Message", fs * 1.5, H - footH + footH * 0.45);
-      },
-      start(ac, dests) {
-        const nodes = [];
-        if (music) nodes.push(playBuffer(ac, music, dests, { loop: true, gain: 0.25 }));
-        if (sound) msgs.forEach((m) => {
-          const o = ac.createOscillator(), g = ac.createGain();
-          const t0 = ac.currentTime + m.at;
-          o.type = "sine";
-          o.frequency.setValueAtTime(m.me ? 880 : 660, t0);
-          o.frequency.exponentialRampToValueAtTime(m.me ? 1320 : 990, t0 + 0.08);
-          g.gain.setValueAtTime(0, t0);
-          g.gain.linearRampToValueAtTime(0.25, t0 + 0.01);
-          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
-          o.connect(g); dests.forEach((d) => g.connect(d));
-          o.start(t0); o.stop(t0 + 0.3);
-          nodes.push(o);
-        });
-        return () => nodes.forEach((n) => { try { n.stop(); } catch {} });
-      },
-    };
-  },
-};
-
 // ---------- player / exporter ----------
 const tools = { text: textTool, audio: audioTool, video: videoTool, chat: chatTool };
 let current = "text";
 let running = null;
+let ready = false;
 
 function setSize(W, H) { if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; } }
 
-function refresh(t = 0.6) {
-  if (running) return;
+function refresh(t = 1.2) {
+  if (running || !ready) return;
   const p = tools[current].build();
   setSize(p.W, p.H);
   p.draw(ctx, Math.min(t, p.duration));
@@ -950,13 +1582,27 @@ function pickMime() {
   return types.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
 }
 
+function setBusy(busy) {
+  $("play").disabled = $("export").disabled = busy;
+  document.querySelectorAll("#tabs button").forEach((b) => (b.disabled = busy));
+}
+
 async function run(record) {
   if (running) return;
-  const p = tools[current].build();
-  if (p.needs) { status(p.needs); return; }
-  if (record && !window.MediaRecorder) { status("Your browser can't record video. Try Chrome, Edge, Firefox or Safari 14.1+."); return; }
   const ac = getAC();
-  await ac.resume();
+  await ac.resume(); // must happen inside the click, before any await on slow work
+  setBusy(true);
+  running = { stop: () => {} };
+  try {
+    if (tools[current].prepare) await tools[current].prepare();
+  } catch (err) {
+    running = null; setBusy(false);
+    status("⚠️ " + (/fetch|network|load|import/i.test(err.message) ? "Couldn't download the AI voice. Check your internet connection and try again. " : "") + err.message);
+    return;
+  }
+  const p = tools[current].build();
+  if (p.needs) { running = null; setBusy(false); status(p.needs); return; }
+  if (record && !window.MediaRecorder) { running = null; setBusy(false); status("Your browser can't record video. Try Chrome, Edge, Firefox or Safari 14.1+."); return; }
   setSize(p.W, p.H);
   const dest = ac.createMediaStreamDestination();
   let recorder = null, chunks = [], mime = "";
@@ -964,16 +1610,13 @@ async function run(record) {
     const stream = canvas.captureStream(30);
     dest.stream.getAudioTracks().forEach((tr) => stream.addTrack(tr));
     mime = pickMime();
-    recorder = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6_000_000 } : undefined);
+    recorder = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 8_000_000 } : undefined);
     recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     recorder.start(250);
   }
   const stopAudio = p.start(ac, [ac.destination, dest]);
   const t0 = performance.now();
-  running = { stop: null };
-  $("play").disabled = $("export").disabled = true;
   $("stop").disabled = false;
-  document.querySelectorAll("#tabs button").forEach((b) => (b.disabled = true));
 
   await new Promise((resolve) => {
     let stopped = false;
@@ -991,9 +1634,8 @@ async function run(record) {
 
   stopAudio();
   running = null;
-  $("play").disabled = $("export").disabled = false;
+  setBusy(false);
   $("stop").disabled = true;
-  document.querySelectorAll("#tabs button").forEach((b) => (b.disabled = false));
 
   if (recorder) {
     await new Promise((r) => { recorder.onstop = r; recorder.stop(); });
@@ -1029,6 +1671,7 @@ document.querySelectorAll("input, select, textarea").forEach((el) => {
   el.addEventListener("input", () => refresh());
   el.addEventListener("change", () => refresh());
 });
+ready = true;
 refresh();
 </script>
 </body>
